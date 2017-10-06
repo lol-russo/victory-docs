@@ -1,10 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
+import Fuse from "fuse.js";
 import Link from "gatsby-link";
-// import {observer, PropTypes as MobxPropTypes} from "mobx-react";
-//
-// import SidebarList from "./list";
-// import SidebarSearchInput from "./search-input";
+
+import SidebarSearchInput from "./components/search-input";
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -12,22 +11,39 @@ class Sidebar extends React.Component {
     location: PropTypes.object
   };
 
-  // store: PropTypes.shape({
-  //   searchText: PropTypes.string.isRequired,
-  //   searchIndex: PropTypes.array.isRequired,
-  //   sidebarContent: MobxPropTypes.observableArray.isRequired,
-  //   sidebarMatchingNodes: PropTypes.object.isRequired
-  // }).isRequired,
+  constructor(props) {
+    super(props);
 
-  // <div className="Sidebar-Search">
-  //   <SidebarSearchInput store={this.props.store} />
-  // </div>
-  // <SidebarList
-  //   content={this.props.store.sidebarContent}
-  //   matchingNodes={this.props.store.sidebarMatchingNodes}
-  //   isSearching={!!this.props.store.searchText}
-  //   location={this.props.location}
-  // />
+    this.state = {
+      filteredResults: props.content,
+      filterTerm: ""
+    };
+  }
+
+  handleInputChange(value, content) {
+    const options = {
+      keys: [
+        "node.frontmatter.category",
+        "node.frontmatter.title",
+        "node.tableOfContents"
+      ],
+      threshold: 0.2
+    };
+
+    const fuse = new Fuse(content, options);
+
+    this.setState({
+      filteredResults: value ? fuse.search(value) : content,
+      filterTerm: value
+    });
+  }
+
+  clearInput(content) {
+    this.setState({
+      filteredResults: content,
+      filterTerm: ""
+    });
+  }
 
   renderLinksList(edges, type, category) {
     const { location } = this.props;
@@ -77,14 +93,24 @@ class Sidebar extends React.Component {
   render() {
     const { content } = this.props;
 
+    const filteredContent = this.state.filteredResults;
+
     /* eslint-disable max-len */
     return (
       <nav className="Sidebar">
         <div className="Sidebar-Grid">
+          <div className="Sidebar-Search">
+            <SidebarSearchInput
+              onHandleInputChange={ this.handleInputChange.bind(this) }
+              content={ content }
+              searchText={ this.state.filterTerm }
+              onClearInput={ this.clearInput.bind(this) }
+            />
+          </div>
           <p className="Sidebar-Heading u-noPadding">Introduction</p>
           <ul className="Sidebar-List">
             <ul className="Sidebar-List">
-              {this.renderLinksList(content, "docs", "introduction")}
+              {this.renderLinksList(filteredContent, "docs", "introduction")}
               <li className="Sidebar-List-Item">
                 <a href="https://github.com/FormidableLabs/victory/#contributing">
                   Contributing
@@ -95,30 +121,30 @@ class Sidebar extends React.Component {
           <div className="Sidebar-Grid-block">
             <p className="Sidebar-Heading">Guides</p>
             <ul className="Sidebar-List">
-              {this.renderLinksList(content, "guides", null)}
+              {this.renderLinksList(filteredContent, "guides", null)}
             </ul>
           </div>
           <div className="Sidebar-Grid-block">
             <p className="Sidebar-Heading">Documentation</p>
             <ul className="Sidebar-List">
-              {this.renderLinksList(content, "docs", "none")}
+              {this.renderLinksList(filteredContent, "docs", "none")}
             </ul>
             <div>
               <p className="Sidebar-SubHeading SubHeading">Charts</p>
               <ul className="Sidebar-List">
-                {this.renderLinksList(content, "docs", "charts")}
+                {this.renderLinksList(filteredContent, "docs", "charts")}
               </ul>
             </div>
             <div>
               <p className="Sidebar-SubHeading SubHeading">Containers</p>
               <ul className="Sidebar-List">
-                {this.renderLinksList(content, "docs", "containers")}
+                {this.renderLinksList(filteredContent, "docs", "containers")}
               </ul>
             </div>
             <div>
               <p className="Sidebar-SubHeading SubHeading">More</p>
               <ul className="Sidebar-List">
-                {this.renderLinksList(content, "docs", "more")}
+                {this.renderLinksList(filteredContent, "docs", "more")}
               </ul>
             </div>
           </div>
@@ -129,5 +155,4 @@ class Sidebar extends React.Component {
   }
 }
 
-// export default observer(Sidebar);
 export default Sidebar;
